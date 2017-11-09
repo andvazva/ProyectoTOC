@@ -1,4 +1,4 @@
-# ProyectTOC
+# ProyectoTOC
 
 Narciso López López
 Andrea Vázquez Varela
