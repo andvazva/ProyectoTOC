@@ -7,31 +7,54 @@
 using namespace std;
 
 struct node{
-    int id; //Id del nodo
-    float price =0; //El precio
-    float pfail=0; //Probabilidad de fallo
-    int isRouter = -1; //SI es un 1 es un router, si no es un cliente
+    int id;             // id del nodo
+    bool isRouter = true;  // -1 por defecto, 0 si es un cliente, 1..n si es un router
 };
 
-void printAdjList(vector<list<pair<int,int>>> adjacencyList) {
-// Imprime por pantalla la lista de adyacencia
-    for (int i = 0; i < adjacencyList.size(); ++i) {
-        printf("adjacencyList[%d] ", i);
+struct modelo{
+    int id;             // id del nodo
+    float price =0;     // precio del router
+    float pfail=0;      // probabilidad de fallo del router
+};
 
-        list<pair<int, int> >::iterator itr = adjacencyList[i].begin();
 
-        while (itr != adjacencyList[i].end()) {
-            printf(" -> %d(%d)", (*itr).first, (*itr).second);
+struct estado{
+    vector<int> solucion;
+    double f;
+};
+
+
+
+// Calcular solucion inicial (Greedy)
+
+
+
+// Generar vecinos
+
+
+// Simulated annealing
+
+
+
+// visualizar la lista de adyacencia
+void printAdjList(vector< list< pair <int,int> > > adjList) {
+    for (int i = 0; i < adjList.size(); ++i) {
+        cout << "nodo: "<< i;
+
+        list<pair<int, int> >::iterator itr = adjList[i].begin();
+
+        while (itr != adjList[i].end()) {
+            cout <<" -> "<< (*itr).first << "(" <<(*itr).second << ")";
             ++itr;
         }
-        printf("\n");
+        cout << endl;
     }
 }
 
-//Función que crea un vector de nodos
-vector<node> createNodesVector(int numNodes) {
+// función que crea un vector de nodos
+vector<node> createNodesVector(int numNodes){
     vector<node> nodes;
-    for (int i = 0; i<numNodes;i++) {
+    for (int i = 0; i<numNodes;i++){
         node n;
         n.id=i;
         nodes.push_back(n);
@@ -39,109 +62,108 @@ vector<node> createNodesVector(int numNodes) {
     return nodes;
 }
 
-
-
-int main() {
+int main(int argc, char *argv[]){
     ifstream infile;
-    infile.open("/home/usuario/Escritorio/Clase/TOC/Proyecto/Workspace/in.txt");
-    int totalNodes; //Número total de nodes
-    int numC; //Número total de clientes
-    int numE; //Número de aristas
-    int budget; //Presupuesto
-    int numModels; //Número de modelos
+    infile.open(argv[1]);
+    int totalNodes; // número total de nodos
+    int numC;       // número total de clientes
+    int numE;       // número de aristas
+    int budget;     // presupuesto total
+    int numModels;  // tipos de modelos de routers
 
-    string line; //Cada línea del fichero
 
-    //leer el número total de nodos
+    string line;    // cada línea del fichero
+
+    // leer el número total de nodos
     getline(infile, line);
     istringstream iss(line);
     iss >>totalNodes;
-    cout <<"Número de nodos " <<totalNodes<<endl;
+    cout <<"Número de nodos: " <<totalNodes<<endl;
 
-    //Se crea el vector de nodos
+    // se crea el vector de nodos
     vector<node> nodes = createNodesVector(totalNodes);
 
-    // Adjacency List is a vector of list.
-    // Where each element is a pair<int, int>
-    // pair.first -> the edge's destination
-    // pair.second -> edge's weight
-    //TotalNodes son los vértices
-    vector<list<pair<int, int>>> adjacencyList(totalNodes);
+    /* La lista de adyacencia es un vector de listas cada elemento es un pair<int, int>
+     * donde pair.first -> destino de la arista | pair.second -> peso de la arista */
+    // TotalNodes son los vértices
+    vector< list< pair <int, int> > > adjacencyList(totalNodes);
 
-
-    //leer el número total de clientes
+    // leer número total de clientes
     getline(infile, line);
     istringstream iss2(line);
     iss2 >> numC;
+    cout<<"Número de clientes: "<<numC<<endl;
 
-    cout<<"Número de clientes "<<numC<<endl;
-
-    //Para cada cliente, se leen las ids
+    // se leen las ids para cada cliente
     getline(infile, line);
     istringstream iss3(line);
     int n;
     while (iss3 >> n) {
-        nodes[n].isRouter = 0;
+        nodes[n].isRouter = false;  // si es cliente se le asigna un 0
     }
 
-    //Leer el número de aristas
+    // leer el número de aristas
     getline(infile, line);
     istringstream iss4(line);
     iss4 >> numE;
-    cout<<"Número aristas "<<numE<<endl;
+    cout<<"Número de aristas: "<<numE<<endl;
 
-    //Leer el grafo
-    for (int i = 0; i<numE; i++)
-    {
+    // se lee el grafo
+    for (int i = 0; i<numE; i++){
         getline(infile, line);
         istringstream iss(line);
         int v1,v2;
         iss >> v1;
         iss >> v2;
         adjacencyList[v1].push_back(make_pair(v2, 1));
+        adjacencyList[v2].push_back(make_pair(v1, 1));
     }
 
-    //leer el presupuesto
+    // leer el presupuesto
     getline(infile, line);
     istringstream iss5(line);
     iss5 >> budget;
-    cout<<"Presupuesto "<<budget<<endl;
+    cout<<"Presupuesto total: "<<budget<<endl;
 
-    //leer el número total de modelos
+    // leer el número total de modelos (tipos de router)
     getline(infile, line);
     istringstream iss6(line);
     iss6 >> numModels;
-    cout<<"número modelos " <<numModels<<endl;
+    cout<<"Tipos de router: " <<numModels<<endl<<endl;
 
+    vector<modelo> modelos(numModels); //Modelos del router
     //Leer precio y probabilidad de fallo
-    for (int i = 0; i<numModels; i++)
-    {
+    for (int i = 0; i<numModels; i++){
         getline(infile, line);
         istringstream iss(line);
-        int model; //La id del router
-        float price; //El precio
-        float pfail; //Prob fallo
-        iss >>model;
-        iss >>price;
-        iss >>pfail;
-        int id;
-        while (iss >> id) {
-            nodes[id].isRouter = model;
-            nodes[id].price = price;
-            nodes[id].pfail = pfail;
+        iss >>modelos[i].id;
+        iss >>modelos[i].price;
+        iss >>modelos[i].pfail;
+    }
+
+    infile.close(); // cierra fichero
+
+    // se muestra el grafo completo (lista de adyacencia)
+    cout<<"Grafo"<<endl;
+    printAdjList(adjacencyList);
+    cout << endl;
+
+    // se muestra la información de cada uno de los nodos del grafo
+    cout<<"Información de los nodos"<<endl;
+    for (int i = 0; i<nodes.size();i++){
+        cout<<"Nodo "<<nodes[i].id<<" --> ";
+        if (nodes[i].isRouter == false)
+            cout << "Es un cliente"<<endl;
+        else {
+            cout << "Es un router "<<endl;
         }
     }
 
-
-    cout<<"Lista de adyacencia"<<endl;
-    printAdjList(adjacencyList);
-
-    cout<<"Vector de nodos"<<endl;
-    for (int i = 0; i<nodes.size();i++){
-        cout<<"IdCliente "<<nodes[i].id<<" ";
-        cout<<"Precio "<<nodes[i].price<<" ";
-        cout<<"Pfallo "<<nodes[i].pfail<<" ";
-        cout<<"EsRouter "<<nodes[i].isRouter<<endl;
+    for (int i = 0; i<modelos.size();i++){
+        cout<<"Modelo número: "<<modelos[i].id<<endl;
+        cout<<"Precio: "<<modelos[i].price<<endl;
+        cout<<"Probabilidad de fallo: "<<modelos[i].pfail<<endl;
     }
-    infile.close();
+
+    return 0;
 }
