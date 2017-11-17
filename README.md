@@ -2,7 +2,7 @@
 
 1. Lectura del fichero: TERMINADO
 2. Solucin inicial
-3.1. Inicialización: TERMINADO
+2.1. Inicialización: TERMINADO
 2.2. Función de evaluación
 2.3. Vecindario inicial
 2.4 Simulated Annealing
