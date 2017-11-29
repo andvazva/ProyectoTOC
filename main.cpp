@@ -9,7 +9,7 @@
 #include <tgmath.h>
 #include <vector>
 
-#define NUM_SECONDS_TO_WAIT 30  // Time limit para ATB
+#define NUM_SECONDS_TO_WAIT 5  // Time limit para ATB
 
 using namespace std;
 using namespace std::chrono;
@@ -17,7 +17,7 @@ using namespace std::chrono;
 
 struct node{
     int id;                 // Id del nodo
-    bool isRouter = true;   // -1 por defecto, 0 si es un cliente, 1..n si es un router
+    bool isRouter = true;
 };
 
 struct modelo{
@@ -136,7 +136,7 @@ float fitness(vector< list< int > > adj,estado &est, vector<modelo> modelos, int
             ccn = compConex(adj,est,i);
             pfail = modelos[i].pfail;
             npfail = 1-pfail;
-            resultado = resultado + (ccn*pfail)*(ccnNoFail*npfail);
+            resultado += (ccn*pfail);//*(ccnNoFail*npfail);
         }
     }
     est.f = resultado;
@@ -171,6 +171,34 @@ vector<node> createNodesVector(int numNodes){
 }
 
 
+//Generación de vecinos variando 1 router aleatorio y 1 router con el mínimo estado
+estado generarVecino1rand1Min(int numModelos, estado e, estado eMin){
+    estado nuevo = e;
+    int tamEstado = e.solution.size();
+    //Ínidice aleatorio para seleccionar vecino
+    int i1 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+    while (e.solution[i1]==-1)
+        i1 = rand()%(((tamEstado-1) - 0) + 1) + 0; //Porque no se puede intercambiar un cliente
+
+    int i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+    while (e.solution[i2]==-1 || i1==i2) //Para que se cambien dos routers diferentes
+        i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+
+    //Índice para seleccionar modelo
+    int m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
+    while (m1==e.solution[i1]) //Para que no se cambie un modelo por el mismo
+        m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
+
+    int m2 = eMin.solution[i2];
+
+    //cout<<endl<<i1<<" "<<i2<<" "<<m1<<" "<<m2<<" ";
+    nuevo.solution[i1] = m1;
+    nuevo.solution[i2]= m2;
+    return nuevo;
+}
+
+
+
 /* Simulated Annealing
 *  Entradas:
 *  adj: Lista de adyacencia
@@ -200,7 +228,8 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             Es = fitness(adj, s, modelos, budget);  // Función de evaluación del estado
             // Generar una configuración inicial (vecino) correcta
             while (Es == 0) {                       // Si la función de evaluación es 0 --> sobrepasa el coste
-                s = iniRand(modelos.size(), nodos);
+                //s = iniRand(modelos.size(), nodos);
+                s = generarVecino1rand1Min(modelos.size(), s,sMin);
                 Es = fitness(adj, s, modelos, budget);
             }
 
@@ -211,10 +240,14 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             }
 
             // Generar un vecino que no tenga coste = 0
-            snew = iniRand(modelos.size(),nodos);
+            //snew = iniRand(modelos.size(),nodos);
+            snew = generarVecino1rand1Min(modelos.size(), s,sMin);
+
             Esnew = fitness(adj, snew, modelos, budget);    // Función de evaluación del estado nuevo
             while (Esnew == 0) {                            // Si la función de evaluación es 0 --> sobrepasa el coste
-                snew = iniRand(modelos.size(), nodos);
+                //snew = iniRand(modelos.size(), nodos);
+                snew = generarVecino1rand1Min(modelos.size(), s,sMin);
+
                 Esnew = fitness(adj, snew, modelos, budget);
             }
 
@@ -289,6 +322,11 @@ int main(int argc, char *argv[]){
         nodes[n].isRouter = false;  // Si no es cliente se asigna un 0
     }
 
+    // Exportar a fichero .csv para cargar en Gephi las aristas
+    ofstream fileEdges;
+    fileEdges.open ("/home/wintermute/Escritorio/data_gephi/test_edge.csv");    // Cambiar la ruta según el pc
+    fileEdges << "Source,Target\n";
+
     // Se leen el número de aristas
     getline(infile, line);
     istringstream iss4(line);
@@ -304,7 +342,10 @@ int main(int argc, char *argv[]){
         iss >> v2;
         adjacencyList[v1].push_back(v2);
         adjacencyList[v2].push_back(v1);
+        fileEdges << v1 << "," << v2 << endl;   // .csv edges
     }
+    
+    fileEdges.close();
 
     // Se lee el presupuesto
     getline(infile, line);
@@ -388,6 +429,21 @@ int main(int argc, char *argv[]){
     high_resolution_clock::time_point tt2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>( tt2 - tt1 ).count();
     cout << "High Res Clk: " << duration;
+
+
+    // Exportar a fichero .csv para cargar en Gephi los nodos
+    ofstream fileNodes;
+    fileNodes.open ("/home/wintermute/Escritorio/data_gephi/test_node.csv");    // Cambiar la ruta según el pc
+    fileNodes << "Id,Label,colour\n";
+    for (int i = 0; i < e.solution.size(); i++) {   // Asignar colores según modelos y clientes
+        if(e.solution[i] == -1) fileNodes << i << "," << i << "," << "#58FAF4" << endl;
+        if(e.solution[i] == 0) fileNodes << i << "," << i << "," <<  "#FF0000" << endl;
+        if(e.solution[i] == 1) fileNodes << i << "," << i << "," <<  "#2E64FE" << endl;
+        if(e.solution[i] == 2) fileNodes << i << "," << i << "," <<  "#FFFF00" << endl;
+        if(e.solution[i] == 3) fileNodes << i << "," << i << "," <<  "#00FF00" << endl;
+
+    }
+    fileNodes.close();
 
 
     return 0;
