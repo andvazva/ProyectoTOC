@@ -9,7 +9,7 @@
 #include <tgmath.h>
 #include <vector>
 
-#define NUM_SECONDS_TO_WAIT 5  // Time limit para ATB
+#define NUM_SECONDS_TO_WAIT 30 // Time limit para ATB
 
 using namespace std;
 using namespace std::chrono;
@@ -17,7 +17,7 @@ using namespace std::chrono;
 
 struct node{
     int id;                 // Id del nodo
-    bool isRouter = true;
+    bool isRouter = true;   // cliente = false, router = true
 };
 
 struct modelo{
@@ -32,6 +32,8 @@ struct estado{
     double f;
 };
 
+
+float probTotal = 0;    // Probabilidad de fallo total de los modelos de routers
 
 
 // BFS modificado para encontrar el número de islas teniendo en cuenta nodos desconectados
@@ -119,7 +121,6 @@ float fitness(vector< list< int > > adj,estado &est, vector<modelo> modelos, int
     float npfail;           // probabilidad de no fallo
     int ccn;                // componentes conexas
     float resultado = 0;
-    est.f = INTMAX_MAX;     // Se inicializa la evaluación
 
     //Se va calculando el precio de todos los routers hasta que sobrepase el presupuesto
     while ( (i < est.solution.size()) && (cost <= budget) ){
@@ -128,16 +129,17 @@ float fitness(vector< list< int > > adj,estado &est, vector<modelo> modelos, int
     }
     if (cost <= budget){
         //Número de islas sin fallo
-        int ccnNoFail = compConex(adj,est,-1);
+        //int ccnNoFail = compConex(adj,est,-1);
         // cout<<"Comp conexas sin fallo "<<ccnNoFail<<endl;
         //Se calcula el número de componentes conexas desconectando cada grupo de modelos
         for (int i = 0; i<modelos.size(); i++){
             // cout<<"Componentes conexas desconect "<<i<<" "<<compConex(adj,est,i)<<endl;
             ccn = compConex(adj,est,i);
             pfail = modelos[i].pfail;
-            npfail = 1-pfail;
-            resultado += (ccn*pfail);//*(ccnNoFail*npfail);
+            //npfail = 1-pfail;
+            resultado += (pfail/probTotal)*ccn;    //(ccn*pfail);//*(ccnNoFail*npfail);
         }
+      //  (P1/P_total)*#islas_si_falla_modelo1 + (P2/P_total)*#islas_si_falla_modelo2 + (P3/P_total)*#islas_si_falla_modelo3
     }
     est.f = resultado;
     return resultado;
@@ -197,6 +199,7 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
     cout << "Iterando, por favor espere..."<< endl;
     while (T>tmin){
         for (int i = 0; i<kmax; i++) {
+
             Es = fitness(adj, s, modelos, budget);  // Función de evaluación del estado
             // Generar una configuración inicial (vecino) correcta
             while (Es == 0) {                       // Si la función de evaluación es 0 --> sobrepasa el coste
@@ -216,7 +219,6 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             Esnew = fitness(adj, snew, modelos, budget);    // Función de evaluación del estado nuevo
             while (Esnew == 0) {                            // Si la función de evaluación es 0 --> sobrepasa el coste
                 snew = iniRand(modelos.size(), nodos);
-
                 Esnew = fitness(adj, snew, modelos, budget);
             }
 
@@ -230,12 +232,12 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
                 if (P > r)      // Si la probabilidad sobrepasa el # aleatorio
                     s = snew;   // Asignamos en nuevo estado como inicial
             }
-        }
-        time_t t2 = time(0);    // Cálculo de tiempo para ATB
-        if ((t2 - t1) >= NUM_SECONDS_TO_WAIT) {
-            break;
-        }
 
+            time_t t2 = time(0);    // Cálculo de tiempo para ATB
+            if ((t2 - t1) >= NUM_SECONDS_TO_WAIT) {
+                break;
+            }
+        }
         T *= alfa;  // Decrementar temperatura
 
     }
@@ -265,6 +267,7 @@ int main(int argc, char *argv[]){
     clock_t tStart = clock();
     time_t t1 = time(0);
 
+    /******************************** LEER FICHERO ENTRADA ***************************************/
     // Se leen el número total de nodos
     getline(infile, line);
     istringstream iss(line);
@@ -314,7 +317,6 @@ int main(int argc, char *argv[]){
         fileEdges << v1 << "," << v2 << endl;   // .csv edges
     }
 
-
     fileEdges.close();
 
     // Se lee el presupuesto
@@ -343,6 +345,11 @@ int main(int argc, char *argv[]){
 
     infile.close(); // Cerrar fichero
 
+    // Cálculo de la probabilidad de fallo total de los modelos de routers
+    for(int i = 0; i<modelos.size(); i++){
+        probTotal += modelos[i].pfail;
+    }
+
     // Mostrar el grafo completo (lista de adyacencia)
     cout << "Grafo" << endl;
     printAdjList(adjacencyList);
@@ -365,7 +372,7 @@ int main(int argc, char *argv[]){
         cout << "Probabilidad de fallo: " << modelos[i].pfail << endl;
     }
 
-
+    /***************************** BEGIN ***********************************/
     // Inicialización
     estado ini = iniRand(numModels, nodes);
 
@@ -379,7 +386,7 @@ int main(int argc, char *argv[]){
     }
 
     // Simulated Annealing
-    estado e = SA(adjacencyList, modelos, ini, 1000, budget, nodes, t1);
+    estado e = SA(adjacencyList, modelos, ini, 2000, budget, nodes, t1);
 
     //float res = fitness(adjacencyList,ini,modelos,budget);
     //cout<<res;
@@ -406,12 +413,12 @@ int main(int argc, char *argv[]){
     fileNodes.open (argv[3]);    // Cambiar la ruta según el pc
     fileNodes << "Id,Label,colour\n";
     for (int i = 0; i < e.solution.size(); i++) {   // Asignar colores según modelos y clientes
-        if(e.solution[i] == -1) fileNodes << i << "," << i << "," << "#58FAF4" << endl;
-        if(e.solution[i] == 0) fileNodes << i << "," << i << "," <<  "#FF0000" << endl;
-        if(e.solution[i] == 1) fileNodes << i << "," << i << "," <<  "#2E64FE" << endl;
-        if(e.solution[i] == 2) fileNodes << i << "," << i << "," <<  "#FFFF00" << endl;
-        if(e.solution[i] == 3) fileNodes << i << "," << i << "," <<  "#00FF00" << endl;
-
+        if(e.solution[i] == -1) fileNodes << i << "," << i << "," << "#FFFFFF" << endl; //Blanco
+        if(e.solution[i] == 0) fileNodes << i << "," << i << "," <<  "#FF0000" << endl; //Rojo
+        if(e.solution[i] == 1) fileNodes << i << "," << i << "," <<  "#2E64FE" << endl; //Azul
+        if(e.solution[i] == 2) fileNodes << i << "," << i << "," <<  "#FFFF00" << endl; //Amarillo
+        if(e.solution[i] == 3) fileNodes << i << "," << i << "," <<  "#00FF00" << endl; //Verde
+        if(e.solution[i] == 4) fileNodes << i << "," << i << "," <<  "#58FAF4" << endl; //Cian
     }
     fileNodes.close();
 
