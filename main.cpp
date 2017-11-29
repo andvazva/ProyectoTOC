@@ -171,6 +171,34 @@ vector<node> createNodesVector(int numNodes){
 }
 
 
+//Generación de vecinos variando 1 router aleatorio y 1 router con el mínimo estado
+estado generarVecino1rand1Min(int numModelos, estado e, estado eMin){
+    estado nuevo = e;
+    int tamEstado = e.solution.size();
+    //Ínidice aleatorio para seleccionar vecino
+    int i1 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+    while (e.solution[i1]==-1)
+        i1 = rand()%(((tamEstado-1) - 0) + 1) + 0; //Porque no se puede intercambiar un cliente
+
+    int i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+    while (e.solution[i2]==-1 || i1==i2) //Para que se cambien dos routers diferentes
+        i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
+
+    //Índice para seleccionar modelo
+    int m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
+    while (m1==e.solution[i1]) //Para que no se cambie un modelo por el mismo
+        m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
+
+    int m2 = eMin.solution[i2];
+
+    //cout<<endl<<i1<<" "<<i2<<" "<<m1<<" "<<m2<<" ";
+    nuevo.solution[i1] = m1;
+    nuevo.solution[i2]= m2;
+    return nuevo;
+}
+
+
+
 /* Simulated Annealing
 *  Entradas:
 *  adj: Lista de adyacencia
@@ -216,6 +244,7 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             Esnew = fitness(adj, snew, modelos, budget);    // Función de evaluación del estado nuevo
             while (Esnew == 0) {                            // Si la función de evaluación es 0 --> sobrepasa el coste
                 snew = iniRand(modelos.size(), nodos);
+
                 Esnew = fitness(adj, snew, modelos, budget);
             }
 
@@ -292,7 +321,7 @@ int main(int argc, char *argv[]){
 
     // Exportar a fichero .csv para cargar en Gephi las aristas
     ofstream fileEdges;
-    fileEdges.open ("/home/wintermute/Escritorio/data_gephi/test_edge.csv");    // Cambiar la ruta según el pc
+    fileEdges.open (argv[2]);    // Cambiar la ruta según el pc
     fileEdges << "Source,Target\n";
 
     // Se leen el número de aristas
@@ -312,6 +341,7 @@ int main(int argc, char *argv[]){
         adjacencyList[v2].push_back(v1);
         fileEdges << v1 << "," << v2 << endl;   // .csv edges
     }
+
 
     fileEdges.close();
 
@@ -401,7 +431,7 @@ int main(int argc, char *argv[]){
 
     // Exportar a fichero .csv para cargar en Gephi los nodos
     ofstream fileNodes;
-    fileNodes.open ("/home/wintermute/Escritorio/data_gephi/test_node.csv");    // Cambiar la ruta según el pc
+    fileNodes.open (argv[3]);    // Cambiar la ruta según el pc
     fileNodes << "Id,Label,colour\n";
     for (int i = 0; i < e.solution.size(); i++) {   // Asignar colores según modelos y clientes
         if(e.solution[i] == -1) fileNodes << i << "," << i << "," << "#58FAF4" << endl;
