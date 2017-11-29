@@ -171,34 +171,6 @@ vector<node> createNodesVector(int numNodes){
 }
 
 
-//Generación de vecinos variando 1 router aleatorio y 1 router con el mínimo estado
-estado generarVecino1rand1Min(int numModelos, estado e, estado eMin){
-    estado nuevo = e;
-    int tamEstado = e.solution.size();
-    //Ínidice aleatorio para seleccionar vecino
-    int i1 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-    while (e.solution[i1]==-1)
-        i1 = rand()%(((tamEstado-1) - 0) + 1) + 0; //Porque no se puede intercambiar un cliente
-
-    int i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-    while (e.solution[i2]==-1 || i1==i2) //Para que se cambien dos routers diferentes
-        i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-
-    //Índice para seleccionar modelo
-    int m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
-    while (m1==e.solution[i1]) //Para que no se cambie un modelo por el mismo
-        m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
-
-    int m2 = eMin.solution[i2];
-
-    //cout<<endl<<i1<<" "<<i2<<" "<<m1<<" "<<m2<<" ";
-    nuevo.solution[i1] = m1;
-    nuevo.solution[i2]= m2;
-    return nuevo;
-}
-
-
-
 /* Simulated Annealing
 *  Entradas:
 *  adj: Lista de adyacencia
@@ -228,8 +200,7 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             Es = fitness(adj, s, modelos, budget);  // Función de evaluación del estado
             // Generar una configuración inicial (vecino) correcta
             while (Es == 0) {                       // Si la función de evaluación es 0 --> sobrepasa el coste
-                //s = iniRand(modelos.size(), nodos);
-                s = generarVecino1rand1Min(modelos.size(), s,sMin);
+                s = iniRand(modelos.size(), nodos);
                 Es = fitness(adj, s, modelos, budget);
             }
 
@@ -240,14 +211,11 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
             }
 
             // Generar un vecino que no tenga coste = 0
-            //snew = iniRand(modelos.size(),nodos);
-            snew = generarVecino1rand1Min(modelos.size(), s,sMin);
+            snew = iniRand(modelos.size(),nodos);
 
             Esnew = fitness(adj, snew, modelos, budget);    // Función de evaluación del estado nuevo
             while (Esnew == 0) {                            // Si la función de evaluación es 0 --> sobrepasa el coste
-                //snew = iniRand(modelos.size(), nodos);
-                snew = generarVecino1rand1Min(modelos.size(), s,sMin);
-
+                snew = iniRand(modelos.size(), nodos);
                 Esnew = fitness(adj, snew, modelos, budget);
             }
 
@@ -344,7 +312,7 @@ int main(int argc, char *argv[]){
         adjacencyList[v2].push_back(v1);
         fileEdges << v1 << "," << v2 << endl;   // .csv edges
     }
-    
+
     fileEdges.close();
 
     // Se lee el presupuesto
