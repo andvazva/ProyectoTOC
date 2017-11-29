@@ -171,34 +171,6 @@ vector<node> createNodesVector(int numNodes){
 }
 
 
-//Generación de vecinos variando 1 router aleatorio y 1 router con el mínimo estado
-estado generarVecino1rand1Min(int numModelos, estado e, estado eMin){
-    estado nuevo = e;
-    int tamEstado = e.solution.size();
-    //Ínidice aleatorio para seleccionar vecino
-    int i1 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-    while (e.solution[i1]==-1)
-        i1 = rand()%(((tamEstado-1) - 0) + 1) + 0; //Porque no se puede intercambiar un cliente
-
-    int i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-    while (e.solution[i2]==-1 || i1==i2) //Para que se cambien dos routers diferentes
-        i2 = rand()%(((tamEstado-1) - 0) + 1) + 0;
-
-    //Índice para seleccionar modelo
-    int m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
-    while (m1==e.solution[i1]) //Para que no se cambie un modelo por el mismo
-        m1 = rand()%(((numModelos-1) - 0) + 1) + 0;
-
-    int m2 = eMin.solution[i2];
-
-    //cout<<endl<<i1<<" "<<i2<<" "<<m1<<" "<<m2<<" ";
-    nuevo.solution[i1] = m1;
-    nuevo.solution[i2]= m2;
-    return nuevo;
-}
-
-
-
 /* Simulated Annealing
 *  Entradas:
 *  adj: Lista de adyacencia
