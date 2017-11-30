@@ -8,8 +8,9 @@
 #include <sstream>
 #include <tgmath.h>
 #include <vector>
+#include <algorithm>
 
-#define NUM_SECONDS_TO_WAIT 30 // Time limit para ATB
+#define NUM_SECONDS_TO_WAIT 10 // Time limit para ATB
 
 using namespace std;
 using namespace std::chrono;
@@ -18,6 +19,7 @@ using namespace std::chrono;
 struct node{
     int id;                 // Id del nodo
     bool isRouter = true;   // cliente = false, router = true
+    int numConexiones = 0; //Número de conexiones del nodo
 };
 
 struct modelo{
@@ -96,7 +98,7 @@ int compConex(vector< list< int > > adj, estado e, int modelDesc){
 
 
 // Inicialización aleatoria
-estado iniRand(int numModelos,vector< node > nodes){
+estado iniRand(int numModelos,vector< node > &nodes){
     int tam = nodes.size();
     vector<int> sol(tam);   // Vector de la solución
     estado est;
@@ -114,7 +116,7 @@ estado iniRand(int numModelos,vector< node > nodes){
 
 
 // Función de evaluación
-float fitness(vector< list< int > > adj,estado &est, vector<modelo> modelos, int budget){
+float fitness(vector< list< int > > &adj,estado &est, vector<modelo> &modelos, int budget){
     int cost = 0;           // Budget
     int i = 0;
     float pfail;            // probabilidad de fallo
@@ -202,7 +204,7 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
 
             Es = fitness(adj, s, modelos, budget);  // Función de evaluación del estado
             // Generar una configuración inicial (vecino) correcta
-            while (Es == 0) {                       // Si la función de evaluación es 0 --> sobrepasa el coste
+            while (Es == 0 ) {                       // Si la función de evaluación es 0 --> sobrepasa el coste
                 s = iniRand(modelos.size(), nodos);
                 Es = fitness(adj, s, modelos, budget);
             }
@@ -212,6 +214,8 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
                 EsMin = Es;
                 sMin = s;
             }
+
+            if (EsMin <= 1) break;
 
             // Generar un vecino que no tenga coste = 0
             snew = iniRand(modelos.size(),nodos);
@@ -238,6 +242,7 @@ estado SA(vector< list< int > > &adj, vector<modelo> &modelos, estado &s0, float
                 break;
             }
         }
+        if (EsMin <= 1) break;
         T *= alfa;  // Decrementar temperatura
 
     }
@@ -294,11 +299,6 @@ int main(int argc, char *argv[]){
         nodes[n].isRouter = false;  // Si no es cliente se asigna un 0
     }
 
-    // Exportar a fichero .csv para cargar en Gephi las aristas
-    ofstream fileEdges;
-    fileEdges.open (argv[2]);    // Cambiar la ruta según el pc
-    fileEdges << "Source,Target\n";
-
     // Se leen el número de aristas
     getline(infile, line);
     istringstream iss4(line);
@@ -314,10 +314,8 @@ int main(int argc, char *argv[]){
         iss >> v2;
         adjacencyList[v1].push_back(v2);
         adjacencyList[v2].push_back(v1);
-        fileEdges << v1 << "," << v2 << endl;   // .csv edges
-    }
 
-    fileEdges.close();
+    }
 
     // Se lee el presupuesto
     getline(infile, line);
@@ -355,26 +353,11 @@ int main(int argc, char *argv[]){
     printAdjList(adjacencyList);
     cout << endl;
 
-    // Se muestra la información de cada uno de los nodos del grafo
-    cout << "Información de los nodos" << endl;
-    for (int i = 0; i < nodes.size(); i++) {
-        cout << "Nodo " << nodes[i].id << " --> ";
-        if (nodes[i].isRouter == false)
-            cout << "Es un cliente" << endl;
-        else {
-            cout << "Es un router " << endl;
-        }
-    }
-
-    for (int i = 0; i < modelos.size(); i++) {
-        cout << "Modelo número: " << modelos[i].id << endl;
-        cout << "Precio: " << modelos[i].price << endl;
-        cout << "Probabilidad de fallo: " << modelos[i].pfail << endl;
-    }
 
     /***************************** BEGIN ***********************************/
     // Inicialización
     estado ini = iniRand(numModels, nodes);
+
 
     // Imprimir el resultado por pantalla
     cout << endl << "Asignaciones después de la inicialización aleatoria" << endl;
@@ -386,10 +369,7 @@ int main(int argc, char *argv[]){
     }
 
     // Simulated Annealing
-    estado e = SA(adjacencyList, modelos, ini, 2000, budget, nodes, t1);
-
-    //float res = fitness(adjacencyList,ini,modelos,budget);
-    //cout<<res;
+    estado e = SA(adjacencyList, modelos, ini, 150, budget, nodes, t1);
 
 
     // Visualizar solución final
@@ -406,21 +386,6 @@ int main(int argc, char *argv[]){
     high_resolution_clock::time_point tt2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>( tt2 - tt1 ).count();
     cout << "High Res Clk: " << duration;
-
-
-    // Exportar a fichero .csv para cargar en Gephi los nodos
-    ofstream fileNodes;
-    fileNodes.open (argv[3]);    // Cambiar la ruta según el pc
-    fileNodes << "Id,Label,colour\n";
-    for (int i = 0; i < e.solution.size(); i++) {   // Asignar colores según modelos y clientes
-        if(e.solution[i] == -1) fileNodes << i << "," << i << "," << "#FFFFFF" << endl; //Blanco
-        if(e.solution[i] == 0) fileNodes << i << "," << i << "," <<  "#FF0000" << endl; //Rojo
-        if(e.solution[i] == 1) fileNodes << i << "," << i << "," <<  "#2E64FE" << endl; //Azul
-        if(e.solution[i] == 2) fileNodes << i << "," << i << "," <<  "#FFFF00" << endl; //Amarillo
-        if(e.solution[i] == 3) fileNodes << i << "," << i << "," <<  "#00FF00" << endl; //Verde
-        if(e.solution[i] == 4) fileNodes << i << "," << i << "," <<  "#58FAF4" << endl; //Cian
-    }
-    fileNodes.close();
 
 
     return 0;
