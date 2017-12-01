@@ -10,7 +10,7 @@
 #include <vector>
 #include <algorithm>
 
-#define NUM_SECONDS_TO_WAIT 10 // Time limit para ATB
+#define NUM_SECONDS_TO_WAIT 30 // Time limit para ATB
 
 using namespace std;
 using namespace std::chrono;
@@ -113,6 +113,7 @@ estado iniRand(int numModelos,vector< node > &nodes){
     }
     return est;
 }
+
 
 
 // Función de evaluación
@@ -314,8 +315,8 @@ int main(int argc, char *argv[]){
         iss >> v2;
         adjacencyList[v1].push_back(v2);
         adjacencyList[v2].push_back(v1);
-
     }
+
 
     // Se lee el presupuesto
     getline(infile, line);
@@ -353,7 +354,6 @@ int main(int argc, char *argv[]){
     printAdjList(adjacencyList);
     cout << endl;
 
-
     /***************************** BEGIN ***********************************/
     // Inicialización
     estado ini = iniRand(numModels, nodes);
@@ -369,7 +369,10 @@ int main(int argc, char *argv[]){
     }
 
     // Simulated Annealing
-    estado e = SA(adjacencyList, modelos, ini, 150, budget, nodes, t1);
+    estado e = SA(adjacencyList, modelos, ini, 100, budget, nodes, t1);
+
+    //float res = fitness(adjacencyList,ini,modelos,budget);
+    //cout<<res;
 
 
     // Visualizar solución final
@@ -379,6 +382,7 @@ int main(int argc, char *argv[]){
     }
 
 
+
     // Cálculo de tiempos
     clock_t tEnd = clock();
     printf("Time taken: %.2fs\n", (double)(tEnd - tStart)/CLOCKS_PER_SEC);
@@ -386,6 +390,7 @@ int main(int argc, char *argv[]){
     high_resolution_clock::time_point tt2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>( tt2 - tt1 ).count();
     cout << "High Res Clk: " << duration;
+
 
 
     return 0;
