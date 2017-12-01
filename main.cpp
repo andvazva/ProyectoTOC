@@ -353,7 +353,6 @@ int main(int argc, char *argv[]){
     cout << "Grafo" << endl;
     printAdjList(adjacencyList);
     cout << endl;
-
     
     /***************************** BEGIN ***********************************/
     // Inicialización
