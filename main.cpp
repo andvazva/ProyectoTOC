@@ -354,6 +354,7 @@ int main(int argc, char *argv[]){
     printAdjList(adjacencyList);
     cout << endl;
 
+    
     /***************************** BEGIN ***********************************/
     // Inicialización
     estado ini = iniRand(numModels, nodes);
