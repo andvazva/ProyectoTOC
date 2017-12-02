@@ -19,7 +19,6 @@ using namespace std::chrono;
 struct node{
     int id;                 // Id del nodo
     bool isRouter = true;   // cliente = false, router = true
-    int numConexiones = 0; //Número de conexiones del nodo
 };
 
 struct modelo{
