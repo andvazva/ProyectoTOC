@@ -10,7 +10,7 @@
 #include <vector>
 #include <algorithm>
 
-#define NUM_SECONDS_TO_WAIT 30 // Time limit para ATB
+#define NUM_SECONDS_TO_WAIT 10 // Time limit para ATB
 
 using namespace std;
 using namespace std::chrono;
@@ -18,8 +18,6 @@ using namespace std::chrono;
 
 struct node{
     int id;                 // Id del nodo
-    bool isRouter = true;   // cliente = false, router = true
-    int numConexiones = 0; //Número de conexiones del nodo
 };
 
 struct modelo{
@@ -106,14 +104,10 @@ estado iniRand(int numModelos,vector< node > &nodes){
 
     for (int i = 0; i<tam; i++){
         int r = rand()%(((numModelos-1) - 0) + 1) + 0;  // Número aleatorio entre 0 y el último valor de modelos
-        if (!nodes[i].isRouter)
-            est.solution[i] = -1; // Cliente
-        else
-            est.solution[i] = r;  // Router
+        est.solution[i] = r;  // Router
     }
     return est;
 }
-
 
 
 // Función de evaluación
@@ -132,17 +126,13 @@ float fitness(vector< list< int > > &adj,estado &est, vector<modelo> &modelos, i
     }
     if (cost <= budget){
         //Número de islas sin fallo
-        //int ccnNoFail = compConex(adj,est,-1);
-        // cout<<"Comp conexas sin fallo "<<ccnNoFail<<endl;
         //Se calcula el número de componentes conexas desconectando cada grupo de modelos
         for (int i = 0; i<modelos.size(); i++){
-            // cout<<"Componentes conexas desconect "<<i<<" "<<compConex(adj,est,i)<<endl;
             ccn = compConex(adj,est,i);
             pfail = modelos[i].pfail;
             //npfail = 1-pfail;
             resultado += (pfail/probTotal)*ccn;    //(ccn*pfail);//*(ccnNoFail*npfail);
         }
-      //  (P1/P_total)*#islas_si_falla_modelo1 + (P2/P_total)*#islas_si_falla_modelo2 + (P3/P_total)*#islas_si_falla_modelo3
     }
     est.f = resultado;
     return resultado;
@@ -261,7 +251,6 @@ int main(int argc, char *argv[]){
     infile.open(argv[1]);   // Fichero de entrada
 
     int totalNodes;         // Número total de nodos
-    int numC;               // Número total de clientes
     int numE;               // Número de aristas
     int budget;             // Presupuesto total
     int numModels;          // Tipos de modelos de routers
@@ -286,20 +275,6 @@ int main(int argc, char *argv[]){
     // Se crea la lista de adyacencia que es un vector de listas, cada elemento es una lista de <int>
     vector<list<int> > adjacencyList(totalNodes);
 
-    // Se lee el número total de clientes
-    getline(infile, line);
-    istringstream iss2(line);
-    iss2 >> numC;
-    cout << "Número de clientes: " << numC << endl;
-
-    // Se leen las ids de los clientes
-    getline(infile, line);
-    istringstream iss3(line);
-    int n;
-    while (iss3 >> n) {
-        nodes[n].isRouter = false;  // Si no es cliente se asigna un 0
-    }
-
     // Se leen el número de aristas
     getline(infile, line);
     istringstream iss4(line);
@@ -316,7 +291,6 @@ int main(int argc, char *argv[]){
         adjacencyList[v1].push_back(v2);
         adjacencyList[v2].push_back(v1);
     }
-
 
     // Se lee el presupuesto
     getline(infile, line);
@@ -353,34 +327,28 @@ int main(int argc, char *argv[]){
     cout << "Grafo" << endl;
     printAdjList(adjacencyList);
     cout << endl;
-    
+
     /***************************** BEGIN ***********************************/
     // Inicialización
     estado ini = iniRand(numModels, nodes);
 
-
     // Imprimir el resultado por pantalla
     cout << endl << "Asignaciones después de la inicialización aleatoria" << endl;
     for (int i = 0; i < ini.solution.size(); i++) {
-        if (nodes[i].isRouter) {
-            cout << "Router: " << i << " -> ";
-            cout << "Modelo: " << ini.solution[i] << endl;
-        }
+        cout << "Router: " << i << " -> ";
+        cout << "Modelo: " << ini.solution[i] << endl;
+
     }
+    cout << endl;
 
     // Simulated Annealing
-    estado e = SA(adjacencyList, modelos, ini, 100, budget, nodes, t1);
-
-    //float res = fitness(adjacencyList,ini,modelos,budget);
-    //cout<<res;
-
+    estado e = SA(adjacencyList, modelos, ini, 150, budget, nodes, t1);
 
     // Visualizar solución final
     cout << endl << endl;
     for (int i = 0; i < e.solution.size(); i++) {
         cout << "Nodo: " << i << " -->" << e.solution[i] << endl;
     }
-
 
 
     // Cálculo de tiempos
@@ -390,8 +358,6 @@ int main(int argc, char *argv[]){
     high_resolution_clock::time_point tt2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>( tt2 - tt1 ).count();
     cout << "High Res Clk: " << duration;
-
-
 
     return 0;
 }
